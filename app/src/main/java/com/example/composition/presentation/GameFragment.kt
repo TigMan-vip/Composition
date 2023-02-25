@@ -5,6 +5,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModelProvider
 import com.example.composition.R
 import com.example.composition.databinding.FragmentGameBinding
 import com.example.composition.domain.entity.GameResult
@@ -14,6 +16,12 @@ import com.example.composition.domain.entity.Level
 class GameFragment : Fragment() {
 
 	private lateinit var level: Level
+	private val viewModel by lazy {
+		ViewModelProvider(
+			this,
+			ViewModelProvider.AndroidViewModelFactory.getInstance(requireActivity().application)
+		) [GameViewModel::class.java]
+	}
 
 	private var _binding: FragmentGameBinding? = null
 	private val binding: FragmentGameBinding
@@ -28,7 +36,7 @@ class GameFragment : Fragment() {
 		fun newInstance(level: Level): GameFragment {
 			return GameFragment().apply {
 				arguments = Bundle().apply {
-					putSerializable(KEY_LEVEL, level)
+					putParcelable(KEY_LEVEL, level)
 				}
 			}
 		}
@@ -49,27 +57,67 @@ class GameFragment : Fragment() {
 
 	override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
 		super.onViewCreated(view, savedInstanceState)
-		val gameResult = GameResult(
-			true,
-			10,
-			12,
-			GameSettings(
-				10,
-				3,
-				50,
-				8
-			)
-		)
-		binding.tvLeftNumber.setOnClickListener {
+		viewModel.startGame(level)
+		viewModel.formattedTime.observe(viewLifecycleOwner) {
+			binding.tvTimer.text = it
+		}
+		viewModel.gameResult.observe(viewLifecycleOwner) {
 			requireActivity().supportFragmentManager.beginTransaction()
-				.replace(R.id.main_container, GameFinishedFragment.newInstance(gameResult))
+				.replace(R.id.main_container, GameFinishedFragment.newInstance(it))
 				.addToBackStack(null)
 				.commit()
 		}
+
+		viewModel.question.observe(viewLifecycleOwner) {
+			with(binding) {
+				tvLeftNumber.text = it.visibleNumber.toString()
+				tvSum.text = it.sum.toString()
+				tvOption1.text = it.options[0].toString()
+				tvOption2.text = it.options[1].toString()
+				tvOption3.text = it.options[2].toString()
+				tvOption4.text = it.options[3].toString()
+				tvOption5.text = it.options[4].toString()
+				tvOption6.text = it.options[5].toString()
+			}
+		}
+
+		with(binding) {
+			tvOption1.setOnClickListener {
+				viewModel.chooseAnswer(tvOption1.text.toString().toInt())
+			}
+			tvOption2.setOnClickListener {
+				viewModel.chooseAnswer(tvOption2.text.toString().toInt())
+			}
+			tvOption3.setOnClickListener {
+				viewModel.chooseAnswer(tvOption3.text.toString().toInt())
+			}
+			tvOption4.setOnClickListener {
+				viewModel.chooseAnswer(tvOption4.text.toString().toInt())
+			}
+			tvOption5.setOnClickListener {
+				viewModel.chooseAnswer(tvOption5.text.toString().toInt())
+			}
+			tvOption6.setOnClickListener {
+				viewModel.chooseAnswer(tvOption6.text.toString().toInt())
+			}
+		}
+
+		viewModel.progressAnswers.observe(viewLifecycleOwner) {
+			binding.tvAnswersProgress.text = it
+		}
+
+//		binding.tvLeftNumber.setOnClickListener {
+//			requireActivity().supportFragmentManager.beginTransaction()
+//				.replace(R.id.main_container, GameFinishedFragment.newInstance())
+//				.addToBackStack(null)
+//				.commit()
+//		}
 	}
 
 	private fun parseArgs() {
-		level = requireArguments().getSerializable(KEY_LEVEL) as Level
+		requireArguments().getParcelable<Level>(KEY_LEVEL)?.let {
+			level = it
+		}
 	}
 
 	private fun launchGameFinishedFragment(gameResult: GameResult) {
