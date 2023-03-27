@@ -1,9 +1,12 @@
 package com.example.composition.presentation
 
+import android.content.res.ColorStateList
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -23,6 +26,18 @@ class GameFragment : Fragment() {
 		) [GameViewModel::class.java]
 	}
 
+	private val tvOptions by lazy {
+		mutableListOf<TextView>().apply {
+			with(binding) {
+				add(tvOption1)
+				add(tvOption2)
+				add(tvOption3)
+				add(tvOption4)
+				add(tvOption5)
+				add(tvOption6)
+			}
+		}
+	}
 	private var _binding: FragmentGameBinding? = null
 	private val binding: FragmentGameBinding
 	get() = _binding ?: throw RuntimeException("FragmentGameBinding = null")
@@ -58,60 +73,58 @@ class GameFragment : Fragment() {
 	override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
 		super.onViewCreated(view, savedInstanceState)
 		viewModel.startGame(level)
-		viewModel.formattedTime.observe(viewLifecycleOwner) {
-			binding.tvTimer.text = it
-		}
-		viewModel.gameResult.observe(viewLifecycleOwner) {
-			requireActivity().supportFragmentManager.beginTransaction()
-				.replace(R.id.main_container, GameFinishedFragment.newInstance(it))
-				.addToBackStack(null)
-				.commit()
-		}
+		observeViewModel()
+		setOptionsListeners()
+	}
 
-		viewModel.question.observe(viewLifecycleOwner) {
-			with(binding) {
-				tvLeftNumber.text = it.visibleNumber.toString()
-				tvSum.text = it.sum.toString()
-				tvOption1.text = it.options[0].toString()
-				tvOption2.text = it.options[1].toString()
-				tvOption3.text = it.options[2].toString()
-				tvOption4.text = it.options[3].toString()
-				tvOption5.text = it.options[4].toString()
-				tvOption6.text = it.options[5].toString()
+	private fun setOptionsListeners() {
+		for (option in tvOptions) {
+			option.setOnClickListener {
+				viewModel.chooseAnswer(option.text.toString().toInt())
 			}
 		}
+	}
 
+	private fun observeViewModel() {
 		with(binding) {
-			tvOption1.setOnClickListener {
-				viewModel.chooseAnswer(tvOption1.text.toString().toInt())
+			viewModel.question.observe(viewLifecycleOwner) {
+				tvSum.text = it.sum.toString()
+				tvLeftNumber.text = it.visibleNumber.toString()
+				for (i in 0 until tvOptions.size) {
+					tvOptions[i].text = it.options[i].toString()
+				}
 			}
-			tvOption2.setOnClickListener {
-				viewModel.chooseAnswer(tvOption2.text.toString().toInt())
+			viewModel.percentOfRightAnswers.observe(viewLifecycleOwner) {
+				progressBar.setProgress(it, true)
 			}
-			tvOption3.setOnClickListener {
-				viewModel.chooseAnswer(tvOption3.text.toString().toInt())
+			viewModel.progressAnswers.observe(viewLifecycleOwner) {
+				tvAnswersProgress.text = it
 			}
-			tvOption4.setOnClickListener {
-				viewModel.chooseAnswer(tvOption4.text.toString().toInt())
+			viewModel.enoughCountOfRightAnswers.observe(viewLifecycleOwner) {
+				tvAnswersProgress.setTextColor(getColorByState(it))
 			}
-			tvOption5.setOnClickListener {
-				viewModel.chooseAnswer(tvOption5.text.toString().toInt())
+			viewModel.enoughPercentOfRightAnswers.observe(viewLifecycleOwner) {
+				progressBar.progressTintList = ColorStateList.valueOf(getColorByState(it))
 			}
-			tvOption6.setOnClickListener {
-				viewModel.chooseAnswer(tvOption6.text.toString().toInt())
+			viewModel.formattedTime.observe(viewLifecycleOwner) {
+				tvTimer.text = it
+			}
+			viewModel.minPercent.observe(viewLifecycleOwner) {
+				progressBar.secondaryProgress = it
+			}
+			viewModel.gameResult.observe(viewLifecycleOwner) {
+				launchGameFinishedFragment(it)
 			}
 		}
+	}
 
-		viewModel.progressAnswers.observe(viewLifecycleOwner) {
-			binding.tvAnswersProgress.text = it
+	private fun getColorByState(state: Boolean): Int {
+		val getColorId = if (state) {
+			android.R.color.holo_green_light
+		} else {
+			android.R.color.holo_red_light
 		}
-
-//		binding.tvLeftNumber.setOnClickListener {
-//			requireActivity().supportFragmentManager.beginTransaction()
-//				.replace(R.id.main_container, GameFinishedFragment.newInstance())
-//				.addToBackStack(null)
-//				.commit()
-//		}
+		return ContextCompat.getColor(requireContext(), getColorId)
 	}
 
 	private fun parseArgs() {
