@@ -10,6 +10,7 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.navigation.fragment.findNavController
 import com.example.composition.R
 import com.example.composition.databinding.FragmentGameBinding
 import com.example.composition.domain.entity.GameResult
@@ -22,7 +23,7 @@ class GameFragment : Fragment() {
 	private val viewModel by lazy {
 		ViewModelProvider(
 			this,
-			ViewModelProvider.AndroidViewModelFactory.getInstance(requireActivity().application)
+			GameViewModelFactory(level, requireActivity().application)
 		) [GameViewModel::class.java]
 	}
 
@@ -44,7 +45,7 @@ class GameFragment : Fragment() {
 
 	companion object {
 
-		private const val KEY_LEVEL = "level"
+		const val KEY_LEVEL = "level"
 		const val GAME_FRAGMENT_NAME = "GameFragment"
 
 
@@ -72,7 +73,6 @@ class GameFragment : Fragment() {
 
 	override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
 		super.onViewCreated(view, savedInstanceState)
-		viewModel.startGame(level)
 		observeViewModel()
 		setOptionsListeners()
 	}
@@ -134,10 +134,10 @@ class GameFragment : Fragment() {
 	}
 
 	private fun launchGameFinishedFragment(gameResult: GameResult) {
-		requireActivity().supportFragmentManager.beginTransaction()
-			.replace(R.id.main_container, GameFinishedFragment.newInstance(gameResult))
-			.addToBackStack(null)
-			.commit()
+		val args = Bundle().apply {
+			putParcelable(GameFinishedFragment.GAME_RESULT, gameResult)
+		}
+		findNavController().navigate(R.id.action_gameFragment_to_gameFinishedFragment, args)
 	}
 
 	override fun onDestroyView() {
