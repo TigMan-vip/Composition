@@ -2,7 +2,6 @@ package com.example.composition.domain.entity
 
 import android.os.Parcelable
 import kotlinx.parcelize.Parcelize
-import java.io.Serializable
 
 @Parcelize
 data class GameSettings(
@@ -10,4 +9,4 @@ data class GameSettings(
 	val minCountOfRightAnswers: Int,
 	val minPercentOfRightAnswer: Int,
 	val gameTimeInSeconds: Int,
-): Parcelable
+) : Parcelable
